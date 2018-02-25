@@ -1,0 +1,17 @@
+{
+  "name": "sharettenotificationclientjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "^1.8.2",
+    "electron-log": "^2.2.14"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start-win": "echo *"
+  },
+  "author": "",
+  "license": "ISC"
+}
