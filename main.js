@@ -2,12 +2,18 @@ const {app, BrowserWindow, Menu, Tray} = require('electron');
 const path = require('path');
 const url = require('url');
 const log = require('electron-log');
+const jsonParser = require('socket.io-json-parser');
+const io = require('socket.io-client');
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 let tray = null;
-
+const manager = new io.Manager('http://127.0.0.1:3001', {autoConnect: false, timeout: 5000, parser : jsonParser, reconnectionAttempts: 3});
+const socket = io('http://127.0.0.1:3001', {autoConnect: false, timeout: 5000, parser : jsonParser, reconnectionAttempts: 3});
+socket.on('connection_error', () => console.log('error'));
+socket.on('connection_timeout', () => console.log('timeout'));
+socket.on('connect', () => console.log('connected'));
 function createWindow () {
     // Create the browser window.
     win = new BrowserWindow({width: 800, height: 600});
@@ -19,12 +25,9 @@ function createWindow () {
         slashes: true
     }));
 
-    // Open the DevTools.
-    // win.webContents.openDevTools();
 
     // Emitted when the window is closed.
     win.on('closed', () => {
-        console.log('closed');
         // Dereference the window object, usually you would store windows
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
@@ -36,21 +39,29 @@ function createWindow () {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', () => {
-    log.debug('Electron is Ready');
+    log.info('Electron is Ready');
+    createTray();
+    socket.open();
+});
+
+function createTray(){
     tray = new Tray('assets/icon_none.png');
     const contextMenu = Menu.buildFromTemplate([
         {label: 'Open notification center', click(menuItem, browser, event) {createWindow()}, icon: 'assets/new_notif.png'},
         {type: 'separator'},
         {label: 'Quit', id: 'quit', click() {quit()}}
     ]);
-    tray.setToolTip('This is my application.');
+    tray.setToolTip('lalal');
     tray.setContextMenu(contextMenu);
     tray.on('double-click', () => {
         win !== null ? win.focus() : createWindow();
     })
-});
+}
 
 function quit(){
+    if (socket !== null){
+        socket.close();
+    }
     if (process.platform !== 'darwin') {
         log.info('Closing application');
         app.quit()
