@@ -1,4 +1,4 @@
-const {app, BrowserWindow, Menu, Tray} = require('electron');
+const {app, BrowserWindow, Menu, Tray, Notification} = require('electron');
 const path = require('path');
 const url = require('url');
 const log = require('electron-log');
@@ -9,18 +9,22 @@ const io = require('socket.io-client');
 // be closed automatically when the JavaScript object is garbage collected.
 let win;
 let tray = null;
-const manager = new io.Manager('http://127.0.0.1:3001', {autoConnect: false, timeout: 5000, parser : jsonParser, reconnectionAttempts: 3});
-const socket = io('http://127.0.0.1:3001', {autoConnect: false, timeout: 5000, parser : jsonParser, reconnectionAttempts: 3});
-socket.on('connection_error', () => console.log('error'));
-socket.on('connection_timeout', () => console.log('timeout'));
+const socket = io('http://127.0.0.1:3001', {autoConnect: false, timeout: 5000,/* parser : jsonParser,*/ reconnectionAttempts: 3});
 socket.on('connect', () => console.log('connected'));
+socket.on('connect_error', () => console.log('connect_error'));
+socket.on('connect_timeout', () => console.log('connect_timeout'));
+socket.on('error', () => console.log('error'));
+socket.on('disconnect', () => console.log('disconnect'));
+socket.on('reconnect', () => console.log('reconnect'));
+socket.on('news', (data) => console.log('news '+data));
 function createWindow () {
     // Create the browser window.
     win = new BrowserWindow({width: 800, height: 600});
 
+    win.webContents.openDevTools();
     // and load the index.html of the app.
     win.loadURL(url.format({
-        pathname: path.join(__dirname, 'index.html'),
+        pathname: path.join(__dirname+'/public/html/', 'index.html'),
         protocol: 'file:',
         slashes: true
     }));
@@ -31,7 +35,7 @@ function createWindow () {
         // Dereference the window object, usually you would store windows
         // in an array if your app supports multi windows, this is the time
         // when you should delete the corresponding element.
-        win = null
+        win = undefined
     })
 }
 
@@ -42,6 +46,8 @@ app.on('ready', () => {
     log.info('Electron is Ready');
     createTray();
     socket.open();
+    // socket.on('connection_timeout', () => console.log('timeout'));
+    // socket.on('connection_error', () => console.log('error'));
 });
 
 function createTray(){
@@ -51,11 +57,25 @@ function createTray(){
         {type: 'separator'},
         {label: 'Quit', id: 'quit', click() {quit()}}
     ]);
-    tray.setToolTip('lalal');
+    tray.setToolTip('Notification center');
     tray.setContextMenu(contextMenu);
     tray.on('double-click', () => {
-        win !== null ? win.focus() : createWindow();
+        win !== undefined ? win.focus() : createWindow();
     })
+}
+
+function createNotification(){
+    if(Notification.isSupported()){
+        let notif = new Notification({
+            title: 'ceci est un titre',
+            subtitle : 'Ceci est un subtitle',
+            /*icon: 'assets/icon_none.png',
+            hasReply: true, /!*mac os*!/
+            replyPlaceholder: 'replyPlaceHolder', /!*mac os*!/*/});
+        notif.on('click', () => console.log('notif clicked'));
+        notif.on('close', () => console.log('notif closed'));
+        notif.show();
+    }
 }
 
 function quit(){
